@@ -1,8 +1,8 @@
-appId: 'helioslauncher'
-productName: 'Helios Launcher'
+appId: 'fr.secours-ain-rp.aindustrie'
+productName: 'Aindustrie'
 artifactName: '${productName}-setup-${version}.${ext}'
 
-copyright: 'Copyright © 2018-2026 Daniel Scalzi'
+copyright: 'Copyright © 2026 Association Secours de l Ain RP - base HeliosLauncher (Daniel Scalzi, MIT)'
 
 asar: true
 compression: 'maximum'
@@ -39,8 +39,8 @@ mac:
 # Linux Configuration
 linux: 
   target: 'AppImage'
-  maintainer: 'Daniel Scalzi'
-  vendor: 'Daniel Scalzi'
+  maintainer: 'Association Secours de l Ain RP'
+  vendor: 'Association Secours de l Ain RP'
   synopsis: 'Modded Minecraft Launcher'
   description: 'Custom launcher which allows users to join modded servers. All mods, configurations, and updates are handled automatically.'
   category: 'Game'
@@ -49,3 +49,7 @@ linux:
 directories:
   buildResources: 'build'
   output: 'dist'
+publish:
+  provider: 'github'
+  owner: 'ErRoR-404-codage'
+  repo: 'aindustrie-launcher'
