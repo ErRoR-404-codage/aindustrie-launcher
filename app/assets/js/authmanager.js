@@ -180,18 +180,12 @@ const AUTH_MODE = { FULL: 0, MS_REFRESH: 1, MC_REFRESH: 2 }
  * @param {*} authMode The auth mode.
  * @returns An object with all auth data. AccessToken object will be null when mode is MC_REFRESH.
  */
-let msftCodeExchangeCount = 0 // TEMP-DEBUG-MSFT
-
 async function fullMicrosoftAuthFlow(entryCode, authMode) {
     try {
 
         let accessTokenRaw
         let accessToken
         if(authMode !== AUTH_MODE.MC_REFRESH) {
-            if(authMode === AUTH_MODE.FULL) { // TEMP-DEBUG-MSFT
-                msftCodeExchangeCount++
-                log.info(`[MSFT-DEBUG] Échange du code n°${msftCodeExchangeCount} (longueur ${entryCode ? entryCode.length : 0}).`)
-            }
             const accessTokenResponse = await MicrosoftAuth.getAccessToken(entryCode, authMode === AUTH_MODE.MS_REFRESH, AZURE_CLIENT_ID)
             if(accessTokenResponse.responseStatus === RestResponseStatus.ERROR) {
                 return Promise.reject(microsoftErrorDisplayable(accessTokenResponse.microsoftErrorCode))
