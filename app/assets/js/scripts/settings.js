@@ -412,6 +412,7 @@ ipcRenderer.on(MSFT_OPCODE.REPLY_LOGIN, (_, ...arguments_) => {
         } else {
 
             msftLoginLogger.info('Acquired authCode, proceeding with authentication.')
+            msftLoginLogger.info('[MSFT-DEBUG] Redirection :', JSON.stringify(arguments_[3] || {})) // TEMP-DEBUG-MSFT
 
             const authCode = queryMap.code
             AuthManager.addMicrosoftAccount(authCode).then(value => {

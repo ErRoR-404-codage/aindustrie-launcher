@@ -111,6 +111,29 @@ app.disableHardwareAcceleration()
 
 const REDIRECT_URI_PREFIX = 'https://login.microsoftonline.com/common/oauth2/nativeclient?'
 
+// TEMP-DEBUG-MSFT : résumé de la redirection OAuth sans le code lui-même.
+function msftAuthDiagnostic(uri, redirectUrl, queryMap, redirectCount) {
+    const code = queryMap.code
+    // Résultat qu'aurait donné l'ancien parsing de Helios v2.2.1, pour comparaison.
+    let ancienCode
+    uri.substring(REDIRECT_URI_PREFIX.length).split('#', 1).toString().split('&').forEach(query => {
+        const [name, value] = query.split('=')
+        if (name === 'code') ancienCode = decodeURI(value)
+    })
+    const sansCode = new URL(redirectUrl.href)
+    if (sansCode.searchParams.has('code')) sansCode.searchParams.set('code', '<masqué>')
+    return {
+        redirection: redirectCount,
+        urlSansCode: sansCode.href,
+        parametres: Object.keys(queryMap),
+        longueurCode: code ? code.length : 0,
+        longueurCodeBrutDansUrl: (new RegExp('[?&]code=([^&#]*)').exec(uri) || [null, ''])[1].length,
+        caracteresSpeciaux: code ? [...new Set(code.replace(/[A-Za-z0-9]/g, ''))].join('') : '',
+        ancienParsingIdentique: ancienCode === code,
+        longueurAncienParsing: ancienCode ? ancienCode.length : 0
+    }
+}
+
 // Microsoft Auth Login
 let msftAuthWindow
 let msftAuthSuccess
@@ -143,17 +166,30 @@ ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
         }
     })
 
+    let msftRedirectCount = 0 // TEMP-DEBUG-MSFT
     msftAuthWindow.webContents.on('did-navigate', (_, uri) => {
         if (uri.startsWith(REDIRECT_URI_PREFIX)) {
-            let queries = uri.substring(REDIRECT_URI_PREFIX.length).split('#', 1).toString().split('&')
-            let queryMap = {}
+            msftRedirectCount++ // TEMP-DEBUG-MSFT
+            // Ne transmettre le code qu'une seule fois : un code d'autorisation n'est échangeable qu'une fois.
+            if (msftAuthSuccess) {
+                console.warn(`[MSFT-DEBUG] Redirection n°${msftRedirectCount} ignorée : code déjà transmis.`) // TEMP-DEBUG-MSFT
+                return
+            }
 
-            queries.forEach(query => {
-                const [name, value] = query.split('=')
-                queryMap[name] = decodeURI(value)
+            // Parsing via l'API URL (correctif upstream d10ba52, PR #388) : l'ancien parsing
+            // (split('=') + decodeURI) laissait des caractères encodés (%24, %2B, %3D…) dans le code
+            // ou le tronquait, d'où AADSTS70000 « The provided value for the 'code' parameter is not valid ».
+            const redirectUrl = new URL(uri)
+            let queryMap = {}
+            redirectUrl.searchParams.forEach((v, k) => {
+                queryMap[k] = v
             })
 
-            ipcEvent.reply(MSFT_OPCODE.REPLY_LOGIN, MSFT_REPLY_TYPE.SUCCESS, queryMap, msftAuthViewSuccess)
+            // TEMP-DEBUG-MSFT : diagnostic sans jamais exposer le code.
+            const msftDiag = msftAuthDiagnostic(uri, redirectUrl, queryMap, msftRedirectCount)
+            console.log('[MSFT-DEBUG]', JSON.stringify(msftDiag))
+
+            ipcEvent.reply(MSFT_OPCODE.REPLY_LOGIN, MSFT_REPLY_TYPE.SUCCESS, queryMap, msftAuthViewSuccess, msftDiag)
 
             msftAuthSuccess = true
             msftAuthWindow.close()
