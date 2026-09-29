@@ -1,0 +1,45 @@
+name: Release Windows
+
+# Build de l'installeur Windows à chaque tag vX.Y.Z, publié en release GitHub.
+# Le numéro du tag doit correspondre à "version" dans package.json.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Vérification tag / version
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME ≠ version v$v du package.json"; exit 1; }
+
+      - name: Dépendances
+        run: npm ci
+
+      - name: Build de l'installeur
+        run: npx electron-builder --win --publish never
+
+      - name: Publication de la release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Ain'dustrie ${{ github.ref_name }}
+          files: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/latest.yml
